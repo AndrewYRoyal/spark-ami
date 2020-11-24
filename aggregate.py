@@ -1,7 +1,17 @@
+#!/usr/bin/env python
+
 import pyspark
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, TimestampType, DoubleType
 from pyspark.sql import functions
+import os
+import argparse
+
+
+parser = argparse.ArgumentParser('Aggregate Hourly Interval AMI Data')
+parser.add_argument('--input', dest='input', action='store', required=True)
+parser.add_argument('--name', dest='name', action='store', required=True)
+args = parser.parse_args()
 
 # Import Data
 #============================================
@@ -19,7 +29,7 @@ spark = SparkSession.builder \
 use_dat = spark.read.format("csv") \
     .option("header", True) \
     .schema(schema) \
-    .load('sample.csv')
+    .load(args.input)
 
 # Format Data
 #============================================
@@ -31,5 +41,7 @@ use_dat = use_dat.groupBy('meterID', 'hour').avg('use')
 
 # Export
 #============================================
-use_dat.repartition(1).write.csv('output/hour.csv', mode='overwrite', header=True)
-help(use_dat.write)
+if not os.path.exists('output'):
+    os.mkdir('output')
+
+use_dat.repartition(1).write.csv(f'output/{args.name}', mode='overwrite', header=True)
